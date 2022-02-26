@@ -7,7 +7,7 @@ pygame.init()
 screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
 assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert_alpha(),
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha(),
-            "asteroid_image": pygame.image.load("Projekt/Assets/asteriod_image").convert_alpha()}
+            "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert_alpha()}
 gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock()}
 
 pygame.display.set_caption('Asteriodes by Rofdo')
@@ -34,6 +34,9 @@ class Entity(pygame.sprite.Sprite):
         image = pygame.transform.rotate(image, self.rotation)
         return image
 
+    def update():
+        pass
+
 class Player(Entity):
     def __init__(self):
         super().__init__(assets["player_image"], position=pygame.Vector2(0, 0))
@@ -51,19 +54,24 @@ class Player(Entity):
         if pressed_keys[pygame.K_RIGHT]:
             self.rotation -= 1
 
+class Asteroid(Entity):
+    def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
+        super().__init__(assets["asteroid_image"], size, position, rotation)
+
 gamestate["player"] = Player()
 
 def render():
+    screen.fill((0, 0, 0))
     c: Camera = gamestate["camera"]
     for e in gamestate["all_entities"]:
         s: pygame.surface = e.get_image()
         r: pygame.rect = s.get_rect()
-        screen.fill((0, 0, 0))
         xs, ys = screen.get_size()
         screen.blit(s, r.move((xs-s.get_width())/2, (ys-s.get_height())/2).move(e.position.x, e.position.y).move(-c.position.x, -c.position.y))
 
     pygame.display.flip()
 
+t = (Asteroid(position=pygame.Vector2(100, 100)), Asteroid())
 def game_update() -> bool:
     run = True
     for event in pygame.event.get():
