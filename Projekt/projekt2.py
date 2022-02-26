@@ -1,3 +1,4 @@
+from re import A
 from tokenize import String
 from turtle import width
 import pygame
@@ -5,7 +6,8 @@ pygame.init()
 
 screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
 assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert_alpha(),
-            "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha()}
+            "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha(),
+            "asteroid_image": pygame.image.load("Projekt/Assets/asteriod_image").convert_alpha()}
 gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock()}
 
 pygame.display.set_caption('Asteriodes by Rofdo')
