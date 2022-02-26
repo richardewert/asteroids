@@ -6,7 +6,7 @@ pygame.init()
 screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
 assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert_alpha(),
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha()}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group()}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock()}
 
 pygame.display.set_caption('Asteriodes by Rofdo')
 pygame.display.set_icon(assets["window_icon"])
@@ -79,5 +79,6 @@ def game_update() -> bool:
 running = True
 while running:
     running = game_update()
+    gamestate["clock"].tick(60)
 
 pygame.quit()
