@@ -9,7 +9,7 @@ screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
 assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert_alpha(),
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha(),
             "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert_alpha()}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock()}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 250)
@@ -61,6 +61,17 @@ class Player(Entity):
 class Asteroid(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
         super().__init__(assets["asteroid_image"], size, position, rotation)
+        gamestate["asteroides"].add(self)
+        self.rotation = random.randint(-180, 180)
+
+    def update(self):
+        dir = pygame.Vector2(0, -1)
+        dir = dir.rotate(-self.rotation)
+        self.position.x += dir.x
+        self.position.y += dir.y
+
+        if self.position.distance_to(gamestate["camera"].position) > 2000:
+            self.kill()
 
 gamestate["player"] = Player()
 
@@ -84,17 +95,18 @@ def game_update() -> bool:
             s = screen.get_size()
             r = random.randint(0, 3)
             if r == 0:
-                Asteroid(position=pygame.Vector2(s[0]/1.9, random.randint(-1080/2, 1080/2)).__add__(gamestate["camera"].position))
+                Asteroid(position=pygame.Vector2(s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position))
             elif r == 1:
-                Asteroid(position=pygame.Vector2(-s[0]/1.9, random.randint(-1080/2, 1080/2)).__add__(gamestate["camera"].position))
-            elif r == 1:
-                Asteroid(position=pygame.Vector2(random.randint(-1920/2, 1920/2), s[1]/1.9).__add__(gamestate["camera"].position))
+                Asteroid(position=pygame.Vector2(-s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position))
+            elif r == 2:
+                Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), s[1]/1.5).__add__(gamestate["camera"].position))
             else:
-                Asteroid(position=pygame.Vector2(random.randint(-1920/2, 1920/2), -s[1]/1.9).__add__(gamestate["camera"].position))
+                Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5).__add__(gamestate["camera"].position))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 run = False
 
+    gamestate["asteroides"].update()
     gamestate["player"].update(pygame.key.get_pressed())
 
     render()
