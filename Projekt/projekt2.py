@@ -1,6 +1,7 @@
 from re import A
 from tokenize import String
 from turtle import width
+import random
 import pygame
 pygame.init()
 
@@ -9,6 +10,9 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha(),
             "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert_alpha()}
 gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock()}
+
+ADDASTEROID = pygame.USEREVENT + 1
+pygame.time.set_timer(ADDASTEROID, 250)
 
 pygame.display.set_caption('Asteriodes by Rofdo')
 pygame.display.set_icon(assets["window_icon"])
@@ -71,12 +75,22 @@ def render():
 
     pygame.display.flip()
 
-t = (Asteroid(position=pygame.Vector2(100, 100)), Asteroid())
 def game_update() -> bool:
     run = True
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        elif event.type == ADDASTEROID:
+            s = screen.get_size()
+            r = random.randint(0, 3)
+            if r == 0:
+                Asteroid(position=pygame.Vector2(s[0]/1.9, random.randint(-1080/2, 1080/2)).__add__(gamestate["camera"].position))
+            elif r == 1:
+                Asteroid(position=pygame.Vector2(-s[0]/1.9, random.randint(-1080/2, 1080/2)).__add__(gamestate["camera"].position))
+            elif r == 1:
+                Asteroid(position=pygame.Vector2(random.randint(-1920/2, 1920/2), s[1]/1.9).__add__(gamestate["camera"].position))
+            else:
+                Asteroid(position=pygame.Vector2(random.randint(-1920/2, 1920/2), -s[1]/1.9).__add__(gamestate["camera"].position))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 run = False
