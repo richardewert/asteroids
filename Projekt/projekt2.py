@@ -21,6 +21,11 @@ class Camera():
     def __init__(self, position = pygame.Vector2(0, 0)) -> None:
         self.position = position
 
+    def update(self):
+        d = gamestate["player"].position.__sub__(self.position)
+        self.position.x += d.x/5
+        self.position.y += d.y/5
+
 gamestate["camera"] = Camera()
 
 class Entity(pygame.sprite.Sprite):
@@ -53,7 +58,10 @@ class Player(Entity):
             self.velocity.x += dir.x
             self.velocity.y += dir.y
         if pressed_keys[pygame.K_DOWN]:
-            pass
+            dir = pygame.Vector2(0, -1)
+            dir = dir.rotate(-self.rotation)
+            self.velocity.x -= dir.x
+            self.velocity.y -= dir.y
         if pressed_keys[pygame.K_LEFT]:
             self.rotation += 10
         if pressed_keys[pygame.K_RIGHT]:
@@ -62,7 +70,7 @@ class Player(Entity):
         self.position.x += self.velocity.x
         self.position.y += self.velocity.y
 
-        self.velocity = pygame.Vector2(self.velocity.x*0.95, self.velocity.y*0.95)
+        self.velocity = pygame.Vector2(self.velocity.x*0.99, self.velocity.y*0.99)
 
 class Asteroid(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
@@ -114,6 +122,7 @@ def game_update() -> bool:
 
     gamestate["asteroides"].update()
     gamestate["player"].update(pygame.key.get_pressed())
+    gamestate["camera"].update()
 
     render()
     return run
