@@ -44,25 +44,31 @@ class Entity(pygame.sprite.Sprite):
 class Player(Entity):
     def __init__(self):
         super().__init__(assets["player_image"], position=pygame.Vector2(0, 0))
+        self.velocity = pygame.Vector2(0, 0)
 
     def update(self, pressed_keys):
         if pressed_keys[pygame.K_UP]:
             dir = pygame.Vector2(0, -1)
             dir = dir.rotate(-self.rotation)
-            self.position.x += dir.x
-            self.position.y += dir.y
+            self.velocity.x += dir.x
+            self.velocity.y += dir.y
         if pressed_keys[pygame.K_DOWN]:
             pass
         if pressed_keys[pygame.K_LEFT]:
-            self.rotation += 1
+            self.rotation += 10
         if pressed_keys[pygame.K_RIGHT]:
-            self.rotation -= 1
+            self.rotation -= 10
+
+        self.position.x += self.velocity.x
+        self.position.y += self.velocity.y
+
+        self.velocity = pygame.Vector2(self.velocity.x*0.95, self.velocity.y*0.95)
 
 class Asteroid(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
-        super().__init__(assets["asteroid_image"], size, position, rotation)
+        s = random.randint(50, 100)
+        super().__init__(assets["asteroid_image"], size=pygame.Vector2(s, s), position=position, rotation=random.randint(-180, 180))
         gamestate["asteroides"].add(self)
-        self.rotation = random.randint(-180, 180)
 
     def update(self):
         dir = pygame.Vector2(0, -1)
