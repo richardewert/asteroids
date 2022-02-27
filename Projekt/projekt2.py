@@ -3,6 +3,7 @@ from tokenize import String
 from turtle import width
 import random
 import pygame
+import math
 pygame.init()
 
 screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
@@ -50,15 +51,21 @@ class Player(Entity):
     def __init__(self):
         super().__init__(assets["player_image"], position=pygame.Vector2(0, 0))
         self.velocity = pygame.Vector2(0, 0)
+        self.slow = 0
 
     def update(self, pressed_keys):
+        self.slow = (math.pow(self.position.distance_to((0, 0))*0.001, 5))
+        speed = -0.5
+        if self.slow > 1:
+            speed = speed/self.slow
+
         if pressed_keys[pygame.K_UP]:
-            dir = pygame.Vector2(0, -1)
+            dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
             self.velocity.x += dir.x
             self.velocity.y += dir.y
         if pressed_keys[pygame.K_DOWN]:
-            dir = pygame.Vector2(0, -1)
+            dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
             self.velocity.x -= dir.x
             self.velocity.y -= dir.y
@@ -70,7 +77,9 @@ class Player(Entity):
         self.position.x += self.velocity.x
         self.position.y += self.velocity.y
 
-        self.velocity = pygame.Vector2(self.velocity.x*0.99, self.velocity.y*0.99)
+        self.velocity = pygame.Vector2((self.velocity.x*0.99), (self.velocity.y*0.99))
+        if (self.slow * 1) > 1:
+            self.velocity = pygame.Vector2(self.velocity.x / (self.slow * 1), self.velocity.y / (self.slow * 1))
 
 class Asteroid(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
@@ -97,6 +106,14 @@ def render():
         r: pygame.rect = s.get_rect()
         xs, ys = screen.get_size()
         screen.blit(s, r.move((xs-s.get_width())/2, (ys-s.get_height())/2).move(e.position.x, e.position.y).move(-c.position.x, -c.position.y))
+
+    surface = pygame.Surface(screen.get_size())
+    surface.fill((255, 0, 0))
+    if gamestate["player"].slow > 0.1:
+        surface.set_alpha(10*gamestate["player"].slow)
+        screen.blit(surface, (0, 0))
+    else:
+        pass
 
     pygame.display.flip()
 
