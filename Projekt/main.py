@@ -88,7 +88,7 @@ class Player(Entity):
 
         if self.weapon_cooldown > 0:
             self.weapon_cooldown -= 1
-        self.slow = (math.pow(self.position.distance_to((0, 0))*0.0005, 5))
+        self.slow = (math.pow(self.position.distance_to((0, 0))*0.00025, 5))
         speed = -0.5
         if self.slow > 1:
             speed = speed/self.slow
@@ -96,25 +96,21 @@ class Player(Entity):
         if pressed_keys[pygame.K_UP] or pressed_keys[pygame.K_w]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
-            self.velocity.x += dir.x
-            self.velocity.y += dir.y
+            self.velocity += dir.xy
         if pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
-            self.velocity.x -= dir.x
-            self.velocity.y -= dir.y
+            self.velocity -= dir.xy
         if pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_a]:
             self.rotation += 10
         if pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d]:
             self.rotation -= 10
-        if pressed_keys[pygame.K_SPACE] and self.weapon_cooldown == 0:
-            Bullet(pygame.Vector2(self.position.x, self.position.y), int(self.rotation))
+        if (pressed_keys[pygame.K_SPACE] or pygame.mouse.get_pressed(3)[0] == True) and self.weapon_cooldown == 0:
+            Bullet(self.position, int(self.rotation))
             self.weapon_cooldown = 10
 
-        self.position.x += self.velocity.x
-        self.position.y += self.velocity.y
-
-        self.velocity = pygame.Vector2((self.velocity.x*0.99), (self.velocity.y*0.99))
+        self.position += self.velocity.xy
+        self.velocity = self.velocity*0.99
         if (self.slow * 1) > 1:
             self.velocity = pygame.Vector2(self.velocity.x / (self.slow * 1), self.velocity.y / (self.slow * 1))
 
@@ -131,8 +127,8 @@ class Asteroid(Entity):
         gamestate["asteroides"].add(self)
 
     def split(self):
-            Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation + 90))
-            Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation - 90))
+            Asteroid(self.size / 2, self.position, int(self.rotation + 90))
+            Asteroid(self.size / 2, self.position, int(self.rotation - 90))
             self.kill()
 
     def update(self):
@@ -187,7 +183,7 @@ def render():
     surface = pygame.Surface(screen.get_size())
     surface.fill((255, 0, 0))
     if gamestate["player"].slow > 0.1:
-        surface.set_alpha(10*gamestate["player"].slow)
+        surface.set_alpha(20*gamestate["player"].slow)
         screen.blit(surface, (0, 0))
     else:
         pass
