@@ -8,10 +8,10 @@ pygame.init()
 
 #test
 screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
-assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert_alpha(),
-            "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha(),
-            "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert_alpha(),
-            "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert_alpha()}
+assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert(),
+            "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert(),
+            "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert(),
+            "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert()}
 gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
