@@ -106,7 +106,7 @@ class Player(Entity):
         if pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d]:
             self.rotation -= 10
         if (pressed_keys[pygame.K_SPACE] or pygame.mouse.get_pressed(3)[0] == True) and self.weapon_cooldown == 0:
-            Bullet(self.position, int(self.rotation))
+            Bullet(self.position.xy, int(self.rotation))
             self.weapon_cooldown = 10
 
         self.position += self.velocity.xy
