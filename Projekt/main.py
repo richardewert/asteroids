@@ -6,13 +6,12 @@ import pygame
 import math
 pygame.init()
 
-#test
 screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
 assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert(),
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert(),
             "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert(),
             "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert()}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group()}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 250)
@@ -88,6 +87,10 @@ class Player(Entity):
         self.velocity = pygame.Vector2((self.velocity.x*0.99), (self.velocity.y*0.99))
         if (self.slow * 1) > 1:
             self.velocity = pygame.Vector2(self.velocity.x / (self.slow * 1), self.velocity.y / (self.slow * 1))
+        
+    def hit(self, e: Entity):
+        gamestate["running"] = False
+
 
 class Asteroid(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
@@ -106,6 +109,9 @@ class Asteroid(Entity):
                 Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation + 90))
                 Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation - 90))
                 self.kill()
+        
+        if gamestate["player"].position.distance_to(self.position) < self.size[0] * 0.9 + 10:
+            gamestate["player"].hit(self)
 
         if self.position.distance_to(gamestate["camera"].position) > 2000 or self.size[0] < 30:
             self.kill()
@@ -148,11 +154,10 @@ def render():
 
     pygame.display.flip()
 
-def game_update() -> bool:
-    run = True
+def game_update():
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            run = False
+            gamestate["running"] = False
         elif event.type == ADDASTEROID:
             rs = random.randint(50, 100)
             s = screen.get_size()
@@ -167,7 +172,7 @@ def game_update() -> bool:
                 Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                run = False
+                gamestate["running"] = False
 
     gamestate["asteroides"].update()
     gamestate["player"].update(pygame.key.get_pressed())
@@ -175,11 +180,10 @@ def game_update() -> bool:
     gamestate["camera"].update()
 
     render()
-    return run
 
-running = True
-while running:
-    running = game_update()
+gamestate["running"] = True
+while gamestate["running"]:
+    game_update()
     gamestate["clock"].tick(60)
 
 pygame.quit()
