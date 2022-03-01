@@ -13,13 +13,28 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert(),
             "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert(),
             "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert()}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 250)
 
 pygame.display.set_caption('Asteriodes by Rofdo')
 pygame.display.set_icon(assets["window_icon"])
+
+class bar(pygame.sprite.Sprite):
+    def __init__(self, position = pygame.Vector2(50, 80), size = pygame.Vector2(100, 10), color = (0, 255, 0)) -> None:
+        super().__init__()
+        gamestate["ui"].add(self)
+        self.position = position
+        self.size = size
+        self.value = 100
+        self.color = color
+    
+    def render(self):
+        s = screen.get_size()
+        smaller_size = pygame.Vector2(self.size[0] - 5, self.size[1] - 5)
+        pygame.draw.rect(screen, (255, 255, 255), (s[0] * self.position[0]/100 - self.size[0]/2, s[1] * self.position[1]/100 - self.size[1]/2, self.size[0], self.size[1]))
+        pygame.draw.rect(screen, self.color, (s[0] * self.position[0]/100 - smaller_size[0]/2, s[1] * self.position[1]/100 - smaller_size[1]/2, smaller_size[0] * self.value/100, smaller_size[1]))
 
 class Camera():
     def __init__(self, position = pygame.Vector2(0, 0)) -> None:
@@ -58,13 +73,18 @@ class Player(Entity):
         self.weapon_cooldown = 0
         self.shield = 100
         self.health = 100
+        self.shield_bar = bar(pygame.Vector2(50, 90), pygame.Vector2(300, 30), (30,144,255))
+        self.health_bar = bar(pygame.Vector2(50, 95), pygame.Vector2(300, 30), (0,255,0))
 
     def update(self, pressed_keys):
         if self.health <= 0:
             gamestate["running"] = False
 
         if self.shield < 100:
-            self.shield += 1
+            self.shield += 0.1
+
+        self.shield_bar.value = self.shield
+        self.health_bar.value = self.health
 
         if self.weapon_cooldown > 0:
             self.weapon_cooldown -= 1
@@ -160,6 +180,9 @@ def render():
         r: pygame.rect = s.get_rect()
         xs, ys = screen.get_size()
         screen.blit(s, r.move((xs-s.get_width())/2, (ys-s.get_height())/2).move(e.position.x, e.position.y).move(-c.position.x, -c.position.y))
+    
+    for ui in gamestate["ui"]:
+        ui.render()
 
     surface = pygame.Surface(screen.get_size())
     surface.fill((255, 0, 0))
