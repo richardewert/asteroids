@@ -64,19 +64,19 @@ class Player(Entity):
         if self.slow > 1:
             speed = speed/self.slow
 
-        if pressed_keys[pygame.K_UP]:
+        if pressed_keys[pygame.K_UP] or pressed_keys[pygame.K_w]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
             self.velocity.x += dir.x
             self.velocity.y += dir.y
-        if pressed_keys[pygame.K_DOWN]:
+        if pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
             self.velocity.x -= dir.x
             self.velocity.y -= dir.y
-        if pressed_keys[pygame.K_LEFT]:
+        if pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_a]:
             self.rotation += 10
-        if pressed_keys[pygame.K_RIGHT]:
+        if pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d]:
             self.rotation -= 10
         if pressed_keys[pygame.K_SPACE] and self.weapon_cooldown == 0:
             Bullet(pygame.Vector2(self.position.x, self.position.y), int(self.rotation))
