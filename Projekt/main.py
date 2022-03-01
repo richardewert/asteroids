@@ -16,7 +16,7 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
 gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
-pygame.time.set_timer(ADDASTEROID, 250)
+pygame.time.set_timer(ADDASTEROID, 100)
 
 pygame.display.set_caption('Asteriodes by Rofdo')
 pygame.display.set_icon(assets["window_icon"])
@@ -29,7 +29,7 @@ class bar(pygame.sprite.Sprite):
         self.size = size
         self.value = 100
         self.color = color
-    
+
     def render(self):
         s = screen.get_size()
         smaller_size = pygame.Vector2(self.size[0] - 5, self.size[1] - 5)
@@ -117,7 +117,7 @@ class Player(Entity):
         self.velocity = pygame.Vector2((self.velocity.x*0.99), (self.velocity.y*0.99))
         if (self.slow * 1) > 1:
             self.velocity = pygame.Vector2(self.velocity.x / (self.slow * 1), self.velocity.y / (self.slow * 1))
-        
+
     def hit(self, damage: int):
         self.shield -= damage
         if self.shield < 0:
@@ -145,9 +145,9 @@ class Asteroid(Entity):
             if self.position.distance_to(b.position) < self.size[0]*0.9:
                 b.hit()
                 self.split()
-        
+
         if gamestate["player"].position.distance_to(self.position) < self.size[0] * 0.9 + 10:
-            gamestate["player"].hit(10)
+            gamestate["player"].hit(self.size.y/10)
             self.split()
 
         if self.position.distance_to(gamestate["camera"].position) > 2000 or self.size[0] < 30:
@@ -180,7 +180,7 @@ def render():
         r: pygame.rect = s.get_rect()
         xs, ys = screen.get_size()
         screen.blit(s, r.move((xs-s.get_width())/2, (ys-s.get_height())/2).move(e.position.x, e.position.y).move(-c.position.x, -c.position.y))
-    
+
     for ui in gamestate["ui"]:
         ui.render()
 
