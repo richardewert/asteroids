@@ -6,6 +6,7 @@ import pygame
 import math
 pygame.init()
 
+#test
 screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
 assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert_alpha(),
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert_alpha(),
