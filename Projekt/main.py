@@ -1,4 +1,6 @@
+from asyncio import shield
 from re import A
+from select import select
 from tokenize import String
 from turtle import width
 import random
@@ -54,8 +56,16 @@ class Player(Entity):
         self.velocity = pygame.Vector2(0, 0)
         self.slow = 0
         self.weapon_cooldown = 0
+        self.shield = 100
+        self.health = 100
 
     def update(self, pressed_keys):
+        if self.health <= 0:
+            gamestate["running"] = False
+
+        if self.shield < 100:
+            self.shield += 1
+
         if self.weapon_cooldown > 0:
             self.weapon_cooldown -= 1
         self.slow = (math.pow(self.position.distance_to((0, 0))*0.0005, 5))
@@ -88,14 +98,22 @@ class Player(Entity):
         if (self.slow * 1) > 1:
             self.velocity = pygame.Vector2(self.velocity.x / (self.slow * 1), self.velocity.y / (self.slow * 1))
         
-    def hit(self, e: Entity):
-        gamestate["running"] = False
+    def hit(self, damage: int):
+        self.shield -= damage
+        if self.shield < 0:
+            self.health += self.shield
+            self.shield = 0
 
 
 class Asteroid(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
         super().__init__(assets["asteroid_image"], size=size, position=position, rotation=rotation)
         gamestate["asteroides"].add(self)
+
+    def split(self):
+            Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation + 90))
+            Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation - 90))
+            self.kill()
 
     def update(self):
         dir = pygame.Vector2(0, -1)
@@ -106,12 +124,11 @@ class Asteroid(Entity):
         for b in gamestate["bullets"]:
             if self.position.distance_to(b.position) < self.size[0]*0.9:
                 b.hit()
-                Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation + 90))
-                Asteroid(pygame.Vector2(self.size[0]/2, self.size[1]/2), pygame.Vector2(self.position[0], self.position[1]), int(self.rotation - 90))
-                self.kill()
+                self.split()
         
         if gamestate["player"].position.distance_to(self.position) < self.size[0] * 0.9 + 10:
-            gamestate["player"].hit(self)
+            gamestate["player"].hit(10)
+            self.split()
 
         if self.position.distance_to(gamestate["camera"].position) > 2000 or self.size[0] < 30:
             self.kill()
