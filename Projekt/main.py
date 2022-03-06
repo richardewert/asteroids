@@ -106,7 +106,11 @@ class Player(Entity):
         if pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d]:
             self.rotation -= 10
         if (pressed_keys[pygame.K_SPACE] or pygame.mouse.get_pressed(3)[0] == True) and self.weapon_cooldown == 0:
-            Bullet(self.position.xy, int(self.rotation))
+            s = screen.get_size()
+            goal = gamestate["camera"].position.xy
+            goal.x += pygame.mouse.get_pos()[0] - s[0]/2
+            goal.y += pygame.mouse.get_pos()[1] - s[1]/2
+            Bullet(self.position.xy, math.atan2(goal.x - self.position.x, goal.y - self.position.y) * 57.296 + 180)
             self.weapon_cooldown = 10
 
         self.position += self.velocity.xy
@@ -127,8 +131,8 @@ class Asteroid(Entity):
         gamestate["asteroides"].add(self)
 
     def split(self):
-            Asteroid(self.size / 2, self.position, int(self.rotation + 90))
-            Asteroid(self.size / 2, self.position, int(self.rotation - 90))
+            Asteroid(self.size / 2, self.position.xy, int(self.rotation + 45))
+            Asteroid(self.size / 2, self.position.xy, int(self.rotation - 45))
             self.kill()
 
     def update(self):
@@ -143,7 +147,7 @@ class Asteroid(Entity):
                 self.split()
 
         if gamestate["player"].position.distance_to(self.position) < self.size[0] * 0.9 + 10:
-            gamestate["player"].hit(self.size.y/10)
+            gamestate["player"].hit(self.size.y/5)
             self.split()
 
         if self.position.distance_to(gamestate["camera"].position) > 2000 or self.size[0] < 30:
