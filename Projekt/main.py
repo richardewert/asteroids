@@ -12,7 +12,9 @@ screen = pygame.display.set_mode([1920/2, 1080/2], pygame.RESIZABLE)
 assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").convert(),
             "player_image": pygame.image.load("Projekt/Assets/player_image.png").convert(),
             "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert(),
-            "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert()}
+            "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert(),
+            "shot_sound": pygame.mixer.Sound ("Projekt/Assets/laser.mp3"),
+            "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav")}
 gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
@@ -131,6 +133,8 @@ class Asteroid(Entity):
         gamestate["asteroides"].add(self)
 
     def split(self):
+            #assets["asteroid_hit_sound"].set_volume(100/self.position.distance_to(gamestate["camera"].position))
+            #assets["asteroid_hit_sound"].play()
             Asteroid(self.size / 2, self.position.xy, int(self.rotation + 45))
             Asteroid(self.size / 2, self.position.xy, int(self.rotation - 45))
             self.kill()
@@ -157,6 +161,8 @@ class Bullet(Entity):
     def __init__(self, position=pygame.Vector2(0, 0), rotation=0) -> None:
         super().__init__(assets["bullet_image"], pygame.Vector2(10, 20), position, rotation)
         gamestate["bullets"].add(self)
+        assets["shot_sound"].set_volume(random.randint(80, 100)/100)
+        assets["shot_sound"].play()
 
     def update(self):
         dir = pygame.Vector2(0, -50)
