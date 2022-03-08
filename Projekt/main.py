@@ -90,6 +90,7 @@ class Player(Entity):
 
         if self.weapon_cooldown > 0:
             self.weapon_cooldown -= 1
+        
         self.slow = (math.pow(self.position.distance_to((0, 0))*0.00025, 5))
         speed = -0.5
         if self.slow > 1:
@@ -133,8 +134,8 @@ class Asteroid(Entity):
         gamestate["asteroides"].add(self)
 
     def split(self):
-            #assets["asteroid_hit_sound"].set_volume(100/self.position.distance_to(gamestate["camera"].position))
-            #assets["asteroid_hit_sound"].play()
+            assets["asteroid_hit_sound"].set_volume(100/self.position.distance_to(gamestate["camera"].position))
+            pygame.mixer.Channel(1).play(assets["asteroid_hit_sound"])
             Asteroid(self.size / 2, self.position.xy, int(self.rotation + 45))
             Asteroid(self.size / 2, self.position.xy, int(self.rotation - 45))
             self.kill()
@@ -162,7 +163,7 @@ class Bullet(Entity):
         super().__init__(assets["bullet_image"], pygame.Vector2(10, 20), position, rotation)
         gamestate["bullets"].add(self)
         assets["shot_sound"].set_volume(random.randint(80, 100)/100)
-        assets["shot_sound"].play()
+        pygame.mixer.Channel(0).play(assets["shot_sound"])
 
     def update(self):
         dir = pygame.Vector2(0, -50)
@@ -227,6 +228,7 @@ def game_update():
 
     render()
 
+pygame.mixer.set_num_channels(10)
 gamestate["running"] = True
 while gamestate["running"]:
     game_update()
