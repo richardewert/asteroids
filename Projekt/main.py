@@ -15,7 +15,7 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert(),
             "shot_sound": pygame.mixer.Sound ("Projekt/Assets/laser.mp3"),
             "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav")}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group()}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 100)
@@ -37,6 +37,21 @@ class bar(pygame.sprite.Sprite):
         smaller_size = pygame.Vector2(self.size[0] - 5, self.size[1] - 5)
         pygame.draw.rect(screen, (255, 255, 255), (s[0] * self.position[0]/100 - self.size[0]/2, s[1] * self.position[1]/100 - self.size[1]/2, self.size[0], self.size[1]))
         pygame.draw.rect(screen, self.color, (s[0] * self.position[0]/100 - smaller_size[0]/2, s[1] * self.position[1]/100 - smaller_size[1]/2, smaller_size[0] * self.value/100, smaller_size[1]))
+
+class text(pygame.sprite.Sprite):
+    def __init__(self, text, position = pygame.Vector2(50, 80), size = 24, color = (255, 255, 255)) -> None:
+        super().__init__()
+        self.text = text
+        self.position = position
+        self.size = size
+        self.color = color
+    
+    def render(self):
+        font = pygame.font.SysFont(None, self.size)
+        s = screen.get_size()
+        img = font.render(self.text, True, self.color)
+        ss = img.get_size()
+        screen.blit(img, (s[0] * self.position[0]/100 - ss[0]/2, s[1] * self.position[1]/100 - ss[1]/2))
 
 class Camera():
     def __init__(self, position = pygame.Vector2(0, 0)) -> None:
@@ -162,7 +177,7 @@ class Bullet(Entity):
     def __init__(self, position=pygame.Vector2(0, 0), rotation=0) -> None:
         super().__init__(assets["bullet_image"], pygame.Vector2(10, 20), position, rotation)
         gamestate["bullets"].add(self)
-        assets["shot_sound"].set_volume(random.randint(80, 100)/100)
+        assets["shot_sound"].set_volume(random.randint(30, 50)/100)
         pygame.mixer.Channel(0).play(assets["shot_sound"])
 
     def update(self):
@@ -178,7 +193,6 @@ class Bullet(Entity):
         self.kill()
 
 gamestate["player"] = Player()
-
 def render():
     screen.fill((0, 0, 0))
     c: Camera = gamestate["camera"]
@@ -198,28 +212,35 @@ def render():
         screen.blit(surface, (0, 0))
     else:
         pass
-
+    
+    if gamestate["menu"]:
+        for ui in gamestate["menu_ui"]:
+            ui.render()
+    
     pygame.display.flip()
+
+def add_asteroid():
+    rs = random.randint(50, 100)
+    s = screen.get_size()
+    r = random.randint(0, 3)
+    if r == 0:
+        Asteroid(position=pygame.Vector2(s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+    elif r == 1:
+        Asteroid(position=pygame.Vector2(-s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+    elif r == 2:
+        Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), s[1]/1.5).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+    else:
+        Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
 
 def game_update():
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             gamestate["running"] = False
         elif event.type == ADDASTEROID:
-            rs = random.randint(50, 100)
-            s = screen.get_size()
-            r = random.randint(0, 3)
-            if r == 0:
-                Asteroid(position=pygame.Vector2(s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
-            elif r == 1:
-                Asteroid(position=pygame.Vector2(-s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
-            elif r == 2:
-                Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), s[1]/1.5).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
-            else:
-                Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+            add_asteroid()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                gamestate["running"] = False
+                gamestate["menu"] = True
 
     gamestate["asteroides"].update()
     gamestate["player"].update(pygame.key.get_pressed())
@@ -228,10 +249,24 @@ def game_update():
 
     render()
 
+def menu_update():
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            gamestate["running"] = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                gamestate["menu"] = False
+    
+    render()
+
 pygame.mixer.set_num_channels(10)
+gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
 gamestate["running"] = True
 while gamestate["running"]:
-    game_update()
+    if not gamestate["menu"]:
+        game_update()
+    else:
+        menu_update()
     gamestate["clock"].tick(60)
 
 pygame.quit()
