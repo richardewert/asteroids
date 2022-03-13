@@ -1,7 +1,7 @@
 from asyncio import shield
-from re import A
+from distutils import archive_util
+from re import A, S
 from select import select
-from tokenize import String
 from turtle import width
 import random
 import pygame
@@ -14,8 +14,9 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "asteroid_image": pygame.image.load("Projekt/Assets/asteroid_image.png").convert(),
             "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert(),
             "shot_sound": pygame.mixer.Sound ("Projekt/Assets/laser.mp3"),
-            "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav")}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group()}
+            "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav"),
+            "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png")}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 100)
@@ -45,7 +46,7 @@ class text(pygame.sprite.Sprite):
         self.position = position
         self.size = size
         self.color = color
-    
+
     def render(self):
         font = pygame.font.SysFont(None, self.size)
         s = screen.get_size()
@@ -105,7 +106,7 @@ class Player(Entity):
 
         if self.weapon_cooldown > 0:
             self.weapon_cooldown -= 1
-        
+
         self.slow = (math.pow(self.position.distance_to((0, 0))*0.00025, 5))
         speed = -0.5
         if self.slow > 1:
@@ -158,8 +159,7 @@ class Asteroid(Entity):
     def update(self):
         dir = pygame.Vector2(0, -1)
         dir = dir.rotate(-self.rotation)
-        self.position.x += dir.x
-        self.position.y += dir.y
+        self.position += dir.xy
 
         for b in gamestate["bullets"]:
             if self.position.distance_to(b.position) < self.size[0]*0.9:
@@ -173,6 +173,35 @@ class Asteroid(Entity):
         if self.position.distance_to(gamestate["camera"].position) > 2000 or self.size[0] < 30:
             self.kill()
 
+class Enemy(Entity):
+    def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
+        super().__init__(assets["rocket_image"], size, position, rotation)
+        gamestate["enemies"].add(self)
+        self.velocity = pygame.Vector2(0, 0)
+
+    def update(self):
+        dir = pygame.Vector2(gamestate["player"].position.xy.__sub__(self.position)).normalize()
+
+        self.velocity += dir.xy
+        self.position += self.velocity.xy*0.5
+        self.velocity = self.velocity*0.995
+
+        self.rotation = math.atan2(self.velocity.x, self.velocity.y)*180/3.141 + 180
+
+        for b in gamestate["bullets"]:
+            if self.position.distance_to(b.position) < self.size[0]*0.9:
+                b.hit()
+                self.kill()
+
+        for a in gamestate["asteroides"]:
+            if self.position.distance_to(a.position) < self.size[0]*0.9:
+                a.split()
+                self.kill()
+
+        if gamestate["player"].position.distance_to(self.position) < self.size[0] * 0.9 + 10:
+            gamestate["player"].hit(self.size.y/5)
+            self.kill()
+
 class Bullet(Entity):
     def __init__(self, position=pygame.Vector2(0, 0), rotation=0) -> None:
         super().__init__(assets["bullet_image"], pygame.Vector2(10, 20), position, rotation)
@@ -183,8 +212,7 @@ class Bullet(Entity):
     def update(self):
         dir = pygame.Vector2(0, -50)
         dir = dir.rotate(-self.rotation)
-        self.position.x += dir.x
-        self.position.y += dir.y
+        self.position += dir.xy
 
         if self.position.distance_to(gamestate["camera"].position) > 2000:
             self.kill()
@@ -212,37 +240,45 @@ def render():
         screen.blit(surface, (0, 0))
     else:
         pass
-    
+
     if gamestate["menu"]:
         for ui in gamestate["menu_ui"]:
             ui.render()
-    
+
     pygame.display.flip()
 
-def add_asteroid():
-    rs = random.randint(50, 100)
+def get_spawning_pos() -> pygame.Vector2():
     s = screen.get_size()
     r = random.randint(0, 3)
     if r == 0:
-        Asteroid(position=pygame.Vector2(s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+        return pygame.Vector2(s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2)))
     elif r == 1:
-        Asteroid(position=pygame.Vector2(-s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2))).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+        return pygame.Vector2(-s[0]/1.5, random.randint(round(-s[1]/2), round(s[1]/2)))
     elif r == 2:
-        Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), s[1]/1.5).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+        return pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), s[1]/1.5)
     else:
-        Asteroid(position=pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5).__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+        return pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5)
+
+def add_asteroid():
+    rs = random.randint(50, 100)
+    Asteroid(position=get_spawning_pos().__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
 
 def game_update():
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             gamestate["running"] = False
         elif event.type == ADDASTEROID:
-            add_asteroid()
+            if bool(random.getrandbits(1)):
+                add_asteroid()
+            else:
+                if len(gamestate["enemies"]) < 10:
+                    Enemy(position=get_spawning_pos().__add__(gamestate["camera"].position))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 gamestate["menu"] = True
 
     gamestate["asteroides"].update()
+    gamestate["enemies"].update()
     gamestate["player"].update(pygame.key.get_pressed())
     gamestate["bullets"].update()
     gamestate["camera"].update()
@@ -256,7 +292,7 @@ def menu_update():
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 gamestate["menu"] = False
-    
+
     render()
 
 pygame.mixer.set_num_channels(10)
