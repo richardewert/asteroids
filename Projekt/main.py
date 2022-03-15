@@ -1,9 +1,5 @@
-from asyncio import shield
-from distutils import archive_util
-from re import A, S
-from select import select
-from turtle import width
 import random
+from turtle import reset
 import pygame
 import math
 pygame.init()
@@ -96,7 +92,7 @@ class Player(Entity):
 
     def update(self, pressed_keys):
         if self.health <= 0:
-            gamestate["running"] = False
+            reset()
 
         if self.shield < 100:
             self.shield += 0.1
@@ -181,12 +177,18 @@ class Enemy(Entity):
 
     def update(self):
         dir = pygame.Vector2(gamestate["player"].position.xy.__sub__(self.position)).normalize()
+        if self.position.distance_to(gamestate["player"].position) > 5000:
+            self.kill()
 
-        self.velocity += dir.xy
+        self.velocity += dir.xy*1 
         self.position += self.velocity.xy*0.5
-        self.velocity = self.velocity*0.995
+        self.velocity = self.velocity*0.99
 
         self.rotation = math.atan2(self.velocity.x, self.velocity.y)*180/3.141 + 180
+
+        for e in gamestate["enemies"]:
+            if self.position.distance_to(e.position) < self.size[0]*0.9 and not e == self:
+                self.velocity += (e.position.xy - self.position.xy)*-1
 
         for b in gamestate["bullets"]:
             if self.position.distance_to(b.position) < self.size[0]*0.9:
@@ -271,7 +273,7 @@ def game_update():
             if bool(random.getrandbits(1)):
                 add_asteroid()
             else:
-                if len(gamestate["enemies"]) < 10:
+                if len(gamestate["enemies"]) < 1:
                     Enemy(position=get_spawning_pos().__add__(gamestate["camera"].position))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -294,6 +296,13 @@ def menu_update():
                 gamestate["menu"] = False
 
     render()
+
+def reset():
+    {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group(), "player": None}
+    gamestate["camera"] = Camera()
+    gamestate["player"] = Player()
+    gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
+    gamestate["running"] = True
 
 pygame.mixer.set_num_channels(10)
 gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
