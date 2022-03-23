@@ -1,5 +1,6 @@
 from asyncio import shield
 from distutils import archive_util
+from pickle import NONE
 from re import A, S
 from select import select
 from turtle import width
@@ -93,10 +94,12 @@ class Player(Entity):
         self.health = 100
         self.shield_bar = bar(pygame.Vector2(50, 90), pygame.Vector2(300, 30), (30,144,255))
         self.health_bar = bar(pygame.Vector2(50, 95), pygame.Vector2(300, 30), (0,255,0))
+        self.score = 0
 
     def update(self, pressed_keys):
+        self.score += 1
         if self.health <= 0:
-            gamestate["running"] = False
+            reset()
 
         if self.shield < 100:
             self.shield += 0.1
@@ -222,6 +225,7 @@ class Bullet(Entity):
 
 gamestate["player"] = Player()
 def render():
+    gamestate["score_text"].text = "Score: " + str(gamestate["player"].score)
     screen.fill((0, 0, 0))
     c: Camera = gamestate["camera"]
     for e in gamestate["all_entities"]:
@@ -297,7 +301,13 @@ def menu_update():
 
 pygame.mixer.set_num_channels(10)
 gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
+gamestate["score_text"] = text("Score: 0", (50, 5), 50)
+gamestate["ui"].add(gamestate["score_text"])
 gamestate["running"] = True
+
+def reset():
+    gamestate["player"] = Player()
+
 while gamestate["running"]:
     if not gamestate["menu"]:
         game_update()
