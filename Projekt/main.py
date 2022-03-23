@@ -3,6 +3,7 @@ from distutils import archive_util
 from pickle import NONE
 from re import A, S
 from select import select
+from tkinter import ON
 from turtle import width
 import random
 import pygame
@@ -17,7 +18,7 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "shot_sound": pygame.mixer.Sound ("Projekt/Assets/laser.mp3"),
             "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav"),
             "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png")}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group()}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group(), "particle_systems": pygame.sprite.Group(), "particles": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 100)
@@ -66,6 +67,20 @@ class Camera():
 
 gamestate["camera"] = Camera()
 
+class ParticleSystem(pygame.sprite.Sprite):
+    def __init__(self, position = pygame.Vector2(0, 0), direction = 0) -> None:
+        super().__init__()
+        gamestate["particle_systems"].add(self)
+        self.position = position
+        self.direction = direction
+        self.particles = []
+        self.on = True
+
+    def update(self):
+        if self.on:
+            s = random.randint(15, 50)
+            self.particles.append(Particle(position=self.position.xy, rotation=self.direction + random.randint(-10, 10), speed=random.randint(5, 10), size=pygame.Vector2(s, s), lifetime=random.randint(30, 60)))
+
 class Entity(pygame.sprite.Sprite):
     def __init__(self, image: pygame.surface, size = pygame.Vector2(50, 50), position = pygame.Vector2(0, 0), rotation = 0) -> None:
         super().__init__()
@@ -81,8 +96,27 @@ class Entity(pygame.sprite.Sprite):
         image = pygame.transform.rotate(image, self.rotation)
         return image
 
-    def update():
+    def update(self):
         pass
+
+class Particle(Entity):
+    def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0, speed=10, lifetime=60) -> None:
+        super().__init__(assets["asteroid_image"], size, position, rotation)
+        gamestate["particles"].add(self)
+        self.maxlifetime = lifetime
+        self.lifetime = 0
+        self.velocity = pygame.Vector2()
+        dir = pygame.Vector2(0, speed)
+        dir = dir.rotate(-self.rotation)
+        self.velocity += dir.xy
+
+    def update(self):
+        self.position += self.velocity.xy
+        self.velocity = self.velocity*0.99
+
+        self.lifetime += 1
+        if self.lifetime >= self.maxlifetime:
+            self.kill()
 
 class Player(Entity):
     def __init__(self):
@@ -95,8 +129,10 @@ class Player(Entity):
         self.shield_bar = bar(pygame.Vector2(50, 90), pygame.Vector2(300, 30), (30,144,255))
         self.health_bar = bar(pygame.Vector2(50, 95), pygame.Vector2(300, 30), (0,255,0))
         self.score = 0
+        self.booster = ParticleSystem(self.position, self.rotation)
 
     def update(self, pressed_keys):
+        self.booster.direction = self.rotation
         self.score += 1
         if self.health <= 0:
             reset()
@@ -115,10 +151,12 @@ class Player(Entity):
         if self.slow > 1:
             speed = speed/self.slow
 
+        self.booster.on = False
         if pressed_keys[pygame.K_UP] or pressed_keys[pygame.K_w]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
             self.velocity += dir.xy
+            self.booster.on = True
         if pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
@@ -286,6 +324,8 @@ def game_update():
     gamestate["player"].update(pygame.key.get_pressed())
     gamestate["bullets"].update()
     gamestate["camera"].update()
+    gamestate["particle_systems"].update()
+    gamestate["particles"].update()
 
     render()
 
