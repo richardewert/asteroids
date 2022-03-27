@@ -1,4 +1,5 @@
 from asyncio import shield
+from ctypes import pointer
 from distutils import archive_util
 from pickle import NONE
 from re import A, S
@@ -17,7 +18,9 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert(),
             "shot_sound": pygame.mixer.Sound ("Projekt/Assets/laser.mp3"),
             "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav"),
-            "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png")}
+            "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png").convert(),
+            "particle_image": pygame.image.load("Projekt/Assets/particle_image.png").convert(),
+            "pointer_image": pygame.image.load("Projekt/Assets/pointer_image.png").convert()}
 gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group(), "particle_systems": pygame.sprite.Group(), "particles": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
@@ -90,10 +93,12 @@ class Entity(pygame.sprite.Sprite):
         self.size = size
         self.surf = image
         self.surf.set_colorkey((0, 0, 0), pygame.RLEACCEL)
+        self.opacity = 0;
 
     def get_image(self) -> pygame.surface:
         image = pygame.transform.scale(self.surf, (self.size.x, self.size.y))
         image = pygame.transform.rotate(image, self.rotation)
+        image.set_alpha(255*(100-self.opacity)*0.01);
         return image
 
     def update(self):
@@ -101,7 +106,7 @@ class Entity(pygame.sprite.Sprite):
 
 class Particle(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0, speed=10, lifetime=60) -> None:
-        super().__init__(assets["asteroid_image"], size, position, rotation)
+        super().__init__(assets["particle_image"], size, position, rotation)
         gamestate["particles"].add(self)
         self.maxlifetime = lifetime
         self.lifetime = 0
@@ -111,12 +116,27 @@ class Particle(Entity):
         self.velocity += dir.xy
 
     def update(self):
+        self.opacity = self.lifetime/self.maxlifetime*100
         self.position += self.velocity.xy
         self.velocity = self.velocity*0.99
 
         self.lifetime += 1
         if self.lifetime >= self.maxlifetime:
             self.kill()
+
+class Pointer(Entity):
+    def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
+        super().__init__(assets["pointer_image"], size, position, rotation)
+
+    def update(self, pl_position: pygame.Vector2(), slow):
+        if not slow == 0:
+            self.opacity = 100 - 100*slow
+        self.rotation = math.atan2(pl_position.x, pl_position.y)*180/math.pi
+        dir = pygame.Vector2(0, 100)
+        dir = dir.rotate(-self.rotation + 180)
+        self.position = pl_position.xy + dir.xy
+        self.rotation += 90
+
 
 class Player(Entity):
     def __init__(self):
@@ -129,10 +149,14 @@ class Player(Entity):
         self.shield_bar = bar(pygame.Vector2(50, 90), pygame.Vector2(300, 30), (30,144,255))
         self.health_bar = bar(pygame.Vector2(50, 95), pygame.Vector2(300, 30), (0,255,0))
         self.score = 0
-        self.booster = ParticleSystem(self.position, self.rotation)
+        self.booster = ParticleSystem(self.position.xy, self.rotation)
+        self.pointer = Pointer(size=pygame.Vector2(25, 25))
 
     def update(self, pressed_keys):
         self.booster.direction = self.rotation
+        dir = pygame.Vector2(0, 20)
+        dir = dir.rotate(-self.rotation)
+        self.booster.position = self.position.xy + dir.xy
         self.score += 1
         if self.health <= 0:
             reset()
@@ -177,6 +201,8 @@ class Player(Entity):
         self.velocity = self.velocity*0.99
         if (self.slow * 1) > 1:
             self.velocity = pygame.Vector2(self.velocity.x / (self.slow * 1), self.velocity.y / (self.slow * 1))
+
+        self.pointer.update(self.position.xy, self.slow)
 
     def hit(self, damage: int):
         self.shield -= damage
