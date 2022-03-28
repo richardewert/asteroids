@@ -250,8 +250,8 @@ class Enemy(Entity):
         dir = pygame.Vector2(gamestate["player"].position.xy.__sub__(self.position)).normalize()
 
         self.velocity += dir.xy
-        self.position += self.velocity.xy*0.5
-        self.velocity = self.velocity*0.995
+        self.position += self.velocity.xy
+        self.velocity = self.velocity*0.98
 
         self.rotation = math.atan2(self.velocity.x, self.velocity.y)*180/3.141 + 180
 
@@ -259,6 +259,11 @@ class Enemy(Entity):
             if self.position.distance_to(b.position) < self.size[0]*0.9:
                 b.hit()
                 self.kill()
+
+        for e in gamestate["enemies"]:
+            if self.position.distance_to(e.position) < self.size[0]*0.9 and not e == self:
+                dir = e.position.xy - self.position.xy
+                self.velocity -= dir.xy
 
         for a in gamestate["asteroides"]:
             if self.position.distance_to(a.position) < self.size[0]*0.9:
@@ -328,8 +333,9 @@ def get_spawning_pos() -> pygame.Vector2():
         return pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5)
 
 def add_asteroid():
-    rs = random.randint(50, 100)
-    Asteroid(position=get_spawning_pos().__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+    pass
+    #rs = random.randint(50, 100)
+    #Asteroid(position=get_spawning_pos().__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
 
 def game_update():
     for event in pygame.event.get():
