@@ -246,7 +246,7 @@ class Enemy(Entity):
 
         self.velocity += dir.xy
         self.position += self.velocity.xy
-        self.velocity = self.velocity*0.98
+        self.velocity = self.velocity*0.99
 
         self.rotation = math.atan2(self.velocity.x, self.velocity.y)*180/3.141 + 180
 
