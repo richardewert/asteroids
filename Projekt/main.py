@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-=======
-from asyncio import shield
-from ctypes import pointer
-from distutils import archive_util
-from pickle import NONE
-from re import A, S
-from select import select
-from tkinter import ON
-from turtle import width
->>>>>>> e8243c96a091521c1277c48943550693e661b1dd
 import random
 from turtle import reset
 import pygame
@@ -255,15 +244,9 @@ class Enemy(Entity):
         if self.position.distance_to(gamestate["player"].position) > 5000:
             self.kill()
 
-<<<<<<< HEAD
-        self.velocity += dir.xy*1 
-        self.position += self.velocity.xy*0.5
-        self.velocity = self.velocity*0.99
-=======
         self.velocity += dir.xy
         self.position += self.velocity.xy
         self.velocity = self.velocity*0.98
->>>>>>> e8243c96a091521c1277c48943550693e661b1dd
 
         self.rotation = math.atan2(self.velocity.x, self.velocity.y)*180/3.141 + 180
 
