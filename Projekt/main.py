@@ -332,9 +332,8 @@ def get_spawning_pos() -> pygame.Vector2():
         return pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5)
 
 def add_asteroid():
-    pass
-    #rs = random.randint(50, 100)
-    #Asteroid(position=get_spawning_pos().__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+    rs = random.randint(50, 100)
+    Asteroid(position=get_spawning_pos().__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
 
 def game_update():
     for event in pygame.event.get():
@@ -344,7 +343,7 @@ def game_update():
             if bool(random.getrandbits(1)):
                 add_asteroid()
             else:
-                if len(gamestate["enemies"]) < 1:
+                if len(gamestate["enemies"]) < 10:
                     Enemy(position=get_spawning_pos().__add__(gamestate["camera"].position))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
