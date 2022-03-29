@@ -1,3 +1,14 @@
+<<<<<<< HEAD
+=======
+from asyncio import shield
+from ctypes import pointer
+from distutils import archive_util
+from pickle import NONE
+from re import A, S
+from select import select
+from tkinter import ON
+from turtle import width
+>>>>>>> e8243c96a091521c1277c48943550693e661b1dd
 import random
 from turtle import reset
 import pygame
@@ -11,8 +22,10 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "bullet_image": pygame.image.load("Projekt/Assets/bullet_image.png").convert(),
             "shot_sound": pygame.mixer.Sound ("Projekt/Assets/laser.mp3"),
             "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav"),
-            "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png")}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group()}
+            "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png").convert(),
+            "particle_image": pygame.image.load("Projekt/Assets/particle_image.png").convert(),
+            "pointer_image": pygame.image.load("Projekt/Assets/pointer_image.png").convert()}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group(), "particle_systems": pygame.sprite.Group(), "particles": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 100)
@@ -61,6 +74,20 @@ class Camera():
 
 gamestate["camera"] = Camera()
 
+class ParticleSystem(pygame.sprite.Sprite):
+    def __init__(self, position = pygame.Vector2(0, 0), direction = 0) -> None:
+        super().__init__()
+        gamestate["particle_systems"].add(self)
+        self.position = position
+        self.direction = direction
+        self.particles = []
+        self.on = True
+
+    def update(self):
+        if self.on:
+            s = random.randint(15, 50)
+            self.particles.append(Particle(position=self.position.xy, rotation=self.direction + random.randint(-10, 10), speed=random.randint(5, 10), size=pygame.Vector2(s, s), lifetime=random.randint(30, 60)))
+
 class Entity(pygame.sprite.Sprite):
     def __init__(self, image: pygame.surface, size = pygame.Vector2(50, 50), position = pygame.Vector2(0, 0), rotation = 0) -> None:
         super().__init__()
@@ -70,14 +97,50 @@ class Entity(pygame.sprite.Sprite):
         self.size = size
         self.surf = image
         self.surf.set_colorkey((0, 0, 0), pygame.RLEACCEL)
+        self.opacity = 0;
 
     def get_image(self) -> pygame.surface:
         image = pygame.transform.scale(self.surf, (self.size.x, self.size.y))
         image = pygame.transform.rotate(image, self.rotation)
+        image.set_alpha(255*(100-self.opacity)*0.01);
         return image
 
-    def update():
+    def update(self):
         pass
+
+class Particle(Entity):
+    def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0, speed=10, lifetime=60) -> None:
+        super().__init__(assets["particle_image"], size, position, rotation)
+        gamestate["particles"].add(self)
+        self.maxlifetime = lifetime
+        self.lifetime = 0
+        self.velocity = pygame.Vector2()
+        dir = pygame.Vector2(0, speed)
+        dir = dir.rotate(-self.rotation)
+        self.velocity += dir.xy
+
+    def update(self):
+        self.opacity = self.lifetime/self.maxlifetime*100
+        self.position += self.velocity.xy
+        self.velocity = self.velocity*0.99
+
+        self.lifetime += 1
+        if self.lifetime >= self.maxlifetime:
+            self.kill()
+
+class Pointer(Entity):
+    def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
+        super().__init__(assets["pointer_image"], size, position, rotation)
+
+    def update(self, pl_position: pygame.Vector2(), slow):
+        if not slow == 0:
+            self.opacity = 100 - 100*slow
+        self.rotation = math.atan2(pl_position.x, pl_position.y)*180/math.pi
+        dir = pygame.Vector2(0, 100)
+        dir = dir.rotate(-self.rotation + 180)
+        self.position = pl_position.xy + dir.xy
+        self.rotation += 90
+
 
 class Player(Entity):
     def __init__(self):
@@ -89,8 +152,16 @@ class Player(Entity):
         self.health = 100
         self.shield_bar = bar(pygame.Vector2(50, 90), pygame.Vector2(300, 30), (30,144,255))
         self.health_bar = bar(pygame.Vector2(50, 95), pygame.Vector2(300, 30), (0,255,0))
+        self.score = 0
+        self.booster = ParticleSystem(self.position.xy, self.rotation)
+        self.pointer = Pointer(size=pygame.Vector2(25, 25))
 
     def update(self, pressed_keys):
+        self.booster.direction = self.rotation
+        dir = pygame.Vector2(0, 20)
+        dir = dir.rotate(-self.rotation)
+        self.booster.position = self.position.xy + dir.xy
+        self.score += 1
         if self.health <= 0:
             reset()
 
@@ -108,10 +179,12 @@ class Player(Entity):
         if self.slow > 1:
             speed = speed/self.slow
 
+        self.booster.on = False
         if pressed_keys[pygame.K_UP] or pressed_keys[pygame.K_w]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
             self.velocity += dir.xy
+            self.booster.on = True
         if pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
@@ -132,6 +205,8 @@ class Player(Entity):
         self.velocity = self.velocity*0.99
         if (self.slow * 1) > 1:
             self.velocity = pygame.Vector2(self.velocity.x / (self.slow * 1), self.velocity.y / (self.slow * 1))
+
+        self.pointer.update(self.position.xy, self.slow)
 
     def hit(self, damage: int):
         self.shield -= damage
@@ -180,9 +255,15 @@ class Enemy(Entity):
         if self.position.distance_to(gamestate["player"].position) > 5000:
             self.kill()
 
+<<<<<<< HEAD
         self.velocity += dir.xy*1 
         self.position += self.velocity.xy*0.5
         self.velocity = self.velocity*0.99
+=======
+        self.velocity += dir.xy
+        self.position += self.velocity.xy
+        self.velocity = self.velocity*0.98
+>>>>>>> e8243c96a091521c1277c48943550693e661b1dd
 
         self.rotation = math.atan2(self.velocity.x, self.velocity.y)*180/3.141 + 180
 
@@ -194,6 +275,11 @@ class Enemy(Entity):
             if self.position.distance_to(b.position) < self.size[0]*0.9:
                 b.hit()
                 self.kill()
+
+        for e in gamestate["enemies"]:
+            if self.position.distance_to(e.position) < self.size[0]*0.9 and not e == self:
+                dir = e.position.xy - self.position.xy
+                self.velocity -= dir.xy
 
         for a in gamestate["asteroides"]:
             if self.position.distance_to(a.position) < self.size[0]*0.9:
@@ -224,6 +310,7 @@ class Bullet(Entity):
 
 gamestate["player"] = Player()
 def render():
+    gamestate["score_text"].text = "Score: " + str(gamestate["player"].score)
     screen.fill((0, 0, 0))
     c: Camera = gamestate["camera"]
     for e in gamestate["all_entities"]:
@@ -262,8 +349,9 @@ def get_spawning_pos() -> pygame.Vector2():
         return pygame.Vector2(random.randint(round(-s[0]/2), round(s[0]/2)), -s[1]/1.5)
 
 def add_asteroid():
-    rs = random.randint(50, 100)
-    Asteroid(position=get_spawning_pos().__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
+    pass
+    #rs = random.randint(50, 100)
+    #Asteroid(position=get_spawning_pos().__add__(gamestate["camera"].position), size=pygame.Vector2(rs, rs), rotation=random.randint(0, 360))
 
 def game_update():
     for event in pygame.event.get():
@@ -284,6 +372,8 @@ def game_update():
     gamestate["player"].update(pygame.key.get_pressed())
     gamestate["bullets"].update()
     gamestate["camera"].update()
+    gamestate["particle_systems"].update()
+    gamestate["particles"].update()
 
     render()
 
@@ -306,7 +396,13 @@ def reset():
 
 pygame.mixer.set_num_channels(10)
 gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
+gamestate["score_text"] = text("Score: 0", (50, 5), 50)
+gamestate["ui"].add(gamestate["score_text"])
 gamestate["running"] = True
+
+def reset():
+    gamestate["player"] = Player()
+
 while gamestate["running"]:
     if not gamestate["menu"]:
         game_update()
