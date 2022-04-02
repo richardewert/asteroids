@@ -129,7 +129,7 @@ class Pointer(Entity):
         if not slow == 0:
             self.opacity = 100 - 100*slow
         self.rotation = math.atan2(pl_position.x, pl_position.y)*180/math.pi
-        dir = pygame.Vector2(0, 100)
+        dir = pygame.Vector2(0, 200)
         dir = dir.rotate(-self.rotation + 180)
         self.position = pl_position.xy + dir.xy
         self.rotation += 90
@@ -150,7 +150,7 @@ class Player(Entity):
         self.health_bar = bar(pygame.Vector2(50, 95), pygame.Vector2(300, 30), (0,255,0))
         self.score = 0
         self.booster = ParticleSystem(self.position.xy, self.rotation)
-        self.pointer = Pointer(size=pygame.Vector2(50, 50))
+        self.pointer = Pointer(size=pygame.Vector2(20, 50))
 
     def update(self, pressed_keys):
         self.booster.direction = self.rotation
