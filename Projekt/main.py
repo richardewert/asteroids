@@ -1,7 +1,4 @@
-from cmath import phase
 import random
-from re import S
-from turtle import reset
 import pygame
 import math
 pygame.init()
@@ -16,7 +13,7 @@ assets = {  "window_icon": pygame.image.load("Projekt/Assets/window_icon.png").c
             "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png").convert(),
             "particle_image": pygame.image.load("Projekt/Assets/particle_image.png").convert(),
             "pointer_image": pygame.image.load("Projekt/Assets/pointer_image.png").convert()}
-gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group(), "particle_systems": pygame.sprite.Group(), "particles": pygame.sprite.Group()}
+gamestate = {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group(), "particle_systems": pygame.sprite.Group(), "particles": pygame.sprite.Group(), "level_text": None}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 100)
@@ -158,8 +155,13 @@ class Player(Entity):
         dir = dir.rotate(-self.rotation)
         self.booster.position = self.position.xy + dir.xy
         self.score += 1
+        if self.score % 1000 == 0:
+            pass
         if self.health <= 0:
+            self.booster.kill()
+            self.pointer.kill()
             reset()
+            self.kill()
 
         if self.shield < 100:
             self.shield += 0.1
@@ -181,14 +183,22 @@ class Player(Entity):
             dir = dir.rotate(-self.rotation)
             self.velocity += dir.xy
             self.booster.on = True
+            #dir = pygame.Vector2(0, speed)
+            #self.velocity += dir.xy
         if pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]:
             dir = pygame.Vector2(0, speed)
             dir = dir.rotate(-self.rotation)
             self.velocity -= dir.xy
+            #dir = pygame.Vector2(0, -speed)
+            #self.velocity += dir.xy
         if pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_a]:
             self.rotation += 10
+            #dir = pygame.Vector2(speed, 0)
+            #self.velocity += dir.xy
         if pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d]:
             self.rotation -= 10
+            #dir = pygame.Vector2(-speed, 0)
+            #self.velocity += dir.xy
         if (pressed_keys[pygame.K_SPACE] or pygame.mouse.get_pressed(3)[0] == True) and self.weapon_cooldown == 0:
             s = screen.get_size()
             goal = gamestate["camera"].position.xy
@@ -301,6 +311,7 @@ class Bullet(Entity):
 gamestate["player"] = Player()
 def render():
     gamestate["score_text"].text = "Score: " + str(gamestate["player"].score)
+    gamestate["level_text"].text = "Level: " + str(math.ceil(gamestate["player"].score/1000))
     screen.fill((0, 0, 0))
     c: Camera = gamestate["camera"]
     for e in gamestate["all_entities"]:
@@ -316,6 +327,14 @@ def render():
     surface.fill((255, 0, 0))
     if gamestate["player"].slow > 0.1:
         surface.set_alpha(20*gamestate["player"].slow)
+        screen.blit(surface, (0, 0))
+    else:
+        pass
+
+    surface = pygame.Surface(screen.get_size())
+    surface.fill((100, 150, 0))
+    if gamestate["player"].score % 1000 < 25 and gamestate["player"].score % 1000 > 0 and not gamestate["player"].score < 1000:
+        surface.set_alpha(math.sin((gamestate["player"].score % 1000)/5)*100)
         screen.blit(surface, (0, 0))
     else:
         pass
@@ -380,21 +399,15 @@ def menu_update():
     render()
 
 def reset():
-    {"player": None, "camera": None, "all_entities": pygame.sprite.Group(), "clock": pygame.time.Clock(), "asteroides": pygame.sprite.Group(), "bullets": pygame.sprite.Group(), "running": False, "ui": pygame.sprite.Group(), "menu": True, "menu_ui": pygame.sprite.Group(), "enemies": pygame.sprite.Group(), "player": None}
-    gamestate["camera"] = Camera()
     gamestate["player"] = Player()
-    gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
-    gamestate["running"] = True
 
 pygame.mixer.set_num_channels(10)
 gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
 gamestate["score_text"] = text("Score: 0", (50, 5), 50)
+gamestate["level_text"] = text("Level: 1", (5, 5), 50)
 gamestate["ui"].add(gamestate["score_text"])
+gamestate["ui"].add(gamestate["level_text"])
 gamestate["running"] = True
-
-def reset():
-    gamestate["player"].kill()
-    gamestate["player"] = Player()
 
 while gamestate["running"]:
     if not gamestate["menu"]:
