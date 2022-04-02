@@ -1,4 +1,6 @@
+from cmath import phase
 import random
+from re import S
 from turtle import reset
 import pygame
 import math
@@ -120,6 +122,8 @@ class Particle(Entity):
 class Pointer(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0) -> None:
         super().__init__(assets["pointer_image"], size, position, rotation)
+        self.base_size = size
+        self.phase = 0
 
     def update(self, pl_position: pygame.Vector2(), slow):
         if not slow == 0:
@@ -129,6 +133,9 @@ class Pointer(Entity):
         dir = dir.rotate(-self.rotation + 180)
         self.position = pl_position.xy + dir.xy
         self.rotation += 90
+        self.phase += 1
+        scale = math.sin(self.phase/10)/2 + 2
+        self.size = self.base_size.xy * scale
 
 
 class Player(Entity):
@@ -143,7 +150,7 @@ class Player(Entity):
         self.health_bar = bar(pygame.Vector2(50, 95), pygame.Vector2(300, 30), (0,255,0))
         self.score = 0
         self.booster = ParticleSystem(self.position.xy, self.rotation)
-        self.pointer = Pointer(size=pygame.Vector2(25, 25))
+        self.pointer = Pointer(size=pygame.Vector2(50, 50))
 
     def update(self, pressed_keys):
         self.booster.direction = self.rotation
@@ -246,7 +253,7 @@ class Enemy(Entity):
 
         self.velocity += dir.xy
         self.position += self.velocity.xy
-        self.velocity = self.velocity*0.99
+        self.velocity = self.velocity*0.98
 
         self.rotation = math.atan2(self.velocity.x, self.velocity.y)*180/3.141 + 180
 
@@ -262,7 +269,7 @@ class Enemy(Entity):
         for e in gamestate["enemies"]:
             if self.position.distance_to(e.position) < self.size[0]*0.9 and not e == self:
                 dir = e.position.xy - self.position.xy
-                self.velocity -= dir.xy
+                self.velocity -= dir.xy/2
 
         for a in gamestate["asteroides"]:
             if self.position.distance_to(a.position) < self.size[0]*0.9:
@@ -343,7 +350,10 @@ def game_update():
             if bool(random.getrandbits(1)):
                 add_asteroid()
             else:
-                if len(gamestate["enemies"]) < 10:
+                max = math.ceil(gamestate["player"].score/1000)
+                if max > 10:
+                    max = 10
+                if len(gamestate["enemies"]) < max:
                     Enemy(position=get_spawning_pos().__add__(gamestate["camera"].position))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -383,6 +393,7 @@ gamestate["ui"].add(gamestate["score_text"])
 gamestate["running"] = True
 
 def reset():
+    gamestate["player"].kill()
     gamestate["player"] = Player()
 
 while gamestate["running"]:
