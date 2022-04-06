@@ -1,5 +1,7 @@
 import random
 import math
+from time import time
+from turtle import position, update
 import pygame
 pygame.init()
 
@@ -12,7 +14,8 @@ assets =    {   "window_icon": pygame.image.load("Projekt/Assets/window_icon.png
                 "asteroid_hit_sound": pygame.mixer.Sound ("Projekt/Assets/asteroid_hit_sound.wav"),
                 "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png").convert(),
                 "particle_image": pygame.image.load("Projekt/Assets/particle_image.png").convert(),
-                "pointer_image": pygame.image.load("Projekt/Assets/pointer_image.png").convert()}
+                "pointer_image": pygame.image.load("Projekt/Assets/pointer_image.png").convert(),
+                "explosion_image": pygame.image.load("Projekt/Assets/explosion_image.png").convert_alpha()}
 
 gamestate = {   "player": None,
                 "camera": None,
@@ -25,6 +28,8 @@ gamestate = {   "player": None,
                 "enemies": pygame.sprite.Group(),
                 "particle_systems": pygame.sprite.Group(),
                 "particles": pygame.sprite.Group(),
+                "granades": pygame.sprite.Group(),
+                "explosions": pygame.sprite.Group(),
                 "level_text": None}
 
 ADDASTEROID = pygame.USEREVENT + 1
@@ -110,6 +115,50 @@ class Entity(pygame.sprite.Sprite):
     def update(self):
         pass
 
+class Granade(Entity):
+    def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0, lifetime=120, velocity=pygame.Vector2) -> None:
+        super().__init__(assets["particle_image"], size, position, rotation)
+        gamestate["granades"].add(self)
+
+        self.max_lifetime = lifetime
+        self.lifetime = 0
+        self.standart_size = size
+        self.velocity = velocity
+
+    def update(self):
+        self.position += self.velocity.xy
+        self.velocity = self.velocity*0.99
+        self.lifetime += 1
+        self.size = self.standart_size.xy * (math.sin((self.lifetime/3)*(self.lifetime/self.max_lifetime))/2 + 1.5)
+        if self.lifetime >= self.max_lifetime:
+            for entity in gamestate["asteroides"]:
+                if entity.position.distance_to(self.position) < 300:
+                    entity.kill()
+            for entity in gamestate["enemies"]:
+                if entity.position.distance_to(self.position) < 300:
+                    entity.kill()
+            if gamestate["player"].position.distance_to(self.position) < 300:
+                gamestate["player"].hit(80)
+            Explosion(position=self.position.xy)
+            self.kill()
+
+class Explosion(Entity):
+    def __init__(self, size=pygame.Vector2(700, 700), position=pygame.Vector2(0, 0), rotation=0, time=10) -> None:
+        super().__init__(assets["explosion_image"], size, position, rotation)
+        gamestate["explosions"].add(self)
+
+        self.max_size = size
+        self.size = pygame.Vector2(0, 0)
+
+        self.max_time = time
+        self.time = 0
+
+    def update(self):
+        self.size = self.max_size.xy * self.time / self.max_time
+        self.time += 1
+        if self.time >= self.max_time:
+            self.kill()
+
 class Particle(Entity):
     def __init__(self, size=pygame.Vector2(50, 50), position=pygame.Vector2(0, 0), rotation=0, speed=10, lifetime=60) -> None:
         super().__init__(assets["particle_image"], size, position, rotation)
@@ -154,6 +203,7 @@ class Player(Entity):
         self.velocity = pygame.Vector2(0, 0)
         self.slow = 0
         self.weapon_cooldown = 0
+        self.granade_cooldown = 0
         self.shield = 100
         self.health = 100
         self.shield_ui_bar = ui_bar(pygame.Vector2(50, 90), pygame.Vector2(300, 30), (30,144,255))
@@ -184,6 +234,9 @@ class Player(Entity):
 
         if self.weapon_cooldown > 0:
             self.weapon_cooldown -= 1
+
+        if self.granade_cooldown > 0:
+            self.granade_cooldown -= 1
 
         self.slow = (math.pow(self.position.distance_to((0, 0))*0.00025, 5))
         speed = -0.5
@@ -218,6 +271,12 @@ class Player(Entity):
             goal.y += pygame.mouse.get_pos()[1] - screen.get_size()[1]/2
             Bullet(self.position.xy, math.atan2(goal.x - self.position.x, goal.y - self.position.y) * 57.296 + 180)
             self.weapon_cooldown = 10
+        if pressed_keys[pygame.K_e] and self.granade_cooldown == 0:
+            goal = gamestate["camera"].position.xy
+            goal.x += pygame.mouse.get_pos()[0] - screen.get_size()[0]/2 - self.position.x
+            goal.y += pygame.mouse.get_pos()[1] - screen.get_size()[1]/2 - self.position.y
+            Granade(position=self.position.xy, velocity=(goal.xy/50) + self.velocity)
+            self.granade_cooldown = 100
 
         self.position += self.velocity.xy
         self.velocity = self.velocity*0.99
@@ -316,6 +375,11 @@ class Bullet(Entity):
         if self.position.distance_to(gamestate["camera"].position) > 2000:
             self.kill()
 
+        for granade in gamestate["granades"]:
+            if self.position.distance_to(granade.position) < granade.size[0]*0.9:
+                granade.lifetime = granade.max_lifetime
+                self.kill()
+
     def hit(self):
         self.kill()
 
@@ -381,7 +445,8 @@ def game_update():
             gamestate["running"] = False
         elif event.type == ADDASTEROID:
             if bool(random.getrandbits(1)):
-                add_asteroid()
+                if len(gamestate["asteroides"]) < 30:
+                    add_asteroid()
             else:
                 max = math.ceil(gamestate["player"].score/1000)
                 max = min(max, 10)
@@ -398,6 +463,8 @@ def game_update():
     gamestate["camera"].update()
     gamestate["particle_systems"].update()
     gamestate["particles"].update()
+    gamestate["granades"].update()
+    gamestate["explosions"].update()
 
     render()
 
