@@ -15,7 +15,7 @@ assets =    {   "window_icon": pygame.image.load("Projekt/Assets/window_icon.png
                 "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png").convert(),
                 "particle_image": pygame.image.load("Projekt/Assets/particle_image.png").convert(),
                 "pointer_image": pygame.image.load("Projekt/Assets/pointer_image.png").convert(),
-                "explosion_image": pygame.image.load("Projekt/Assets/explosion_image.png").convert_alpha()}
+                "explosion_image": pygame.image.load("Projekt/Assets/explosion_image.png").convert()}
 
 gamestate = {   "player": None,
                 "camera": None,
@@ -30,7 +30,8 @@ gamestate = {   "player": None,
                 "particles": pygame.sprite.Group(),
                 "granades": pygame.sprite.Group(),
                 "explosions": pygame.sprite.Group(),
-                "level_text": None}
+                "level_text": None,
+                "fps_text": None}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 100)
@@ -79,6 +80,9 @@ class Camera():
         self.rel_position.y += d.y/10
         self.position = gamestate["player"].position + (gamestate["player"].position - self.rel_position)/1.5
 
+    def get_rect(self) -> pygame.Rect:
+        return pygame.Rect(self.position.x - screen.get_size()[0]/2, self.position.y - screen.get_size()[1]/2, screen.get_size()[0], screen.get_size()[1])
+
 gamestate["camera"] = Camera()
 
 class ParticleSystem(pygame.sprite.Sprite):
@@ -92,8 +96,8 @@ class ParticleSystem(pygame.sprite.Sprite):
 
     def update(self):
         if self.on:
-            s = random.randint(15, 50)
-            self.particles.append(Particle(position=self.position.xy, rotation=self.directionection + random.randint(-10, 10), speed=random.randint(5, 10), size=pygame.Vector2(s, s), lifetime=random.randint(30, 60)))
+            size = random.randint(15, 50)
+            self.particles.append(Particle(position=self.position.xy, rotation=self.directionection + random.randint(-10, 10), speed=random.randint(5, 10), size=pygame.Vector2(size, size), lifetime=random.randint(30, 60)))
 
 class Entity(pygame.sprite.Sprite):
     def __init__(self, image: pygame.surface, size = pygame.Vector2(50, 50), position = pygame.Vector2(0, 0), rotation = 0) -> None:
@@ -386,17 +390,19 @@ class Bullet(Entity):
 gamestate["player"] = Player()
 
 def render():
+    gamestate["fps_text"].text = "FPS: " + str(round(gamestate["clock"].get_fps()))
     gamestate["score_text"].text = "Score: " + str(gamestate["player"].score)
     gamestate["level_text"].text = "Level: " + str(math.ceil(gamestate["player"].score/1000))
     screen.fill((0, 0, 0))
     camera: Camera = gamestate["camera"]
     for entity in gamestate["all_entities"]:
-        screen.blit(entity.get_image(),
-                    entity.get_image().get_rect().move(
-                        (screen.get_size()[0]-entity.get_image().get_width())/2,
-                        (screen.get_size()[1]-entity.get_image().get_height())/2)
-                    .move(entity.position.x, entity.position.y)
-                    .move(-camera.position.x, -camera.position.y))
+        if entity.get_image().get_rect().move(entity.position.x, entity.position.y).colliderect(gamestate["camera"].get_rect()):
+            screen.blit(entity.get_image(),
+                        entity.get_image().get_rect().move(
+                            (screen.get_size()[0]-entity.get_image().get_width())/2,
+                            (screen.get_size()[1]-entity.get_image().get_height())/2)
+                        .move(entity.position.x, entity.position.y)
+                        .move(-camera.position.x, -camera.position.y))
 
     for menu_ui_element in gamestate["ui"]:
         menu_ui_element.render()
@@ -445,7 +451,7 @@ def game_update():
             gamestate["running"] = False
         elif event.type == ADDASTEROID:
             if bool(random.getrandbits(1)):
-                if len(gamestate["asteroides"]) < 30:
+                if len(gamestate["asteroides"]) < 10:
                     add_asteroid()
             else:
                 max = math.ceil(gamestate["player"].score/1000)
@@ -485,8 +491,10 @@ pygame.mixer.set_num_channels(10)
 gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
 gamestate["score_text"] = text("Score: 0", (50, 5), 50)
 gamestate["level_text"] = text("Level: 1", (5, 5), 50)
+gamestate["fps_text"] = text("FPS: 0", (95, 5), 50)
 gamestate["ui"].add(gamestate["score_text"])
 gamestate["ui"].add(gamestate["level_text"])
+gamestate["ui"].add(gamestate["fps_text"])
 gamestate["running"] = True
 
 while gamestate["running"]:
@@ -495,5 +503,4 @@ while gamestate["running"]:
     else:
         menu_update()
     gamestate["clock"].tick(60)
-
 pygame.quit()
