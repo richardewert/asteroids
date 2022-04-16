@@ -2,6 +2,7 @@ import random
 import math
 from time import time
 from turtle import position, update
+from numpy import size
 import pygame
 pygame.init()
 
@@ -31,7 +32,8 @@ gamestate = {   "player": None,
                 "granades": pygame.sprite.Group(),
                 "explosions": pygame.sprite.Group(),
                 "level_text": None,
-                "fps_text": None}
+                "fps_text": None,
+                "buttons": pygame.sprite.Group()}
 
 ADDASTEROID = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDASTEROID, 100)
@@ -54,7 +56,7 @@ class ui_bar(pygame.sprite.Sprite):
         pygame.draw.rect(screen, (255, 255, 255), (s[0] * self.position[0]/100 - self.size[0]/2, s[1] * self.position[1]/100 - self.size[1]/2, self.size[0], self.size[1]))
         pygame.draw.rect(screen, self.color, (s[0] * self.position[0]/100 - smaller_size[0]/2, s[1] * self.position[1]/100 - smaller_size[1]/2, smaller_size[0] * self.value/100, smaller_size[1]))
 
-class text(pygame.sprite.Sprite):
+class Text(pygame.sprite.Sprite):
     def __init__(self, text, position = pygame.Vector2(50, 80), size = 24, color = (255, 255, 255)) -> None:
         super().__init__()
         self.text = text
@@ -68,6 +70,46 @@ class text(pygame.sprite.Sprite):
         text_position_x = screen.get_size()[0] * self.position[0]/100 - img.get_size()[0]/2
         text_position_y = screen.get_size()[1] * self.position[1]/100 - img.get_size()[1]/2
         screen.blit(img, (text_position_x, text_position_y))
+
+class Button(Text):
+    def __init__(self, text, position=pygame.Vector2(50, 80), size=24, color=(255, 255, 255)) -> None:
+        super().__init__(text, position, size, color)
+        gamestate["buttons"].add(self)
+        self.inflate = 0
+
+    def get_rect(self)->pygame.Rect:
+        true_size = self.size + self.inflate
+        estimated_size_x = self.size*len(self.text)*0.5 + self.inflate
+        return pygame.Rect(screen.get_size()[0] * self.position[0]/100 - estimated_size_x/2, screen.get_size()[1] * self.position[1]/100 - true_size/2, estimated_size_x, true_size)
+
+    def render(self):
+        pygame.draw.rect(screen, self.color, self.get_rect(), 2)
+        return super().render()
+
+    def effect(self):
+        pass
+
+    def update(self):
+        self.inflate = 0
+        if self.get_rect().collidepoint(pygame.mouse.get_pos()):
+            self.inflate = 5
+            if pygame.mouse.get_pressed()[0]:
+                self.effect()
+
+class ResumeButton(Button):
+    def __init__(self, text, position=pygame.Vector2(50, 80), size=24, color=(255, 255, 255)) -> None:
+        super().__init__(text, position, size, color)
+
+    def effect(self):
+        gamestate["menu"] = False
+
+class RestartButton(Button):
+    def __init__(self, text, position=pygame.Vector2(50, 80), size=24, color=(255, 255, 255)) -> None:
+        super().__init__(text, position, size, color)
+
+    def effect(self):
+        gamestate["player"].die()
+        gamestate["menu"] = False
 
 class Camera():
     def __init__(self, position = pygame.Vector2(0, 0)) -> None:
@@ -216,6 +258,12 @@ class Player(Entity):
         self.booster = ParticleSystem(self.position.xy, self.rotation)
         self.pointer = Pointer(size=pygame.Vector2(20, 50))
 
+    def die(self):
+        self.booster.kill()
+        self.pointer.kill()
+        reset()
+        self.kill()
+
     def update(self, pressed_keys):
         self.booster.directionection = self.rotation
         direction = pygame.Vector2(0, 20)
@@ -225,10 +273,7 @@ class Player(Entity):
         if self.score % 1000 == 0:
             pass
         if self.health <= 0:
-            self.booster.kill()
-            self.pointer.kill()
-            reset()
-            self.kill()
+            self.die()
 
         if self.shield < 100:
             self.shield += 0.1
@@ -482,16 +527,18 @@ def menu_update():
             if event.key == pygame.K_SPACE:
                 gamestate["menu"] = False
 
+    gamestate["buttons"].update()
     render()
 
 def reset():
     gamestate["player"] = Player()
 
 pygame.mixer.set_num_channels(10)
-gamestate["menu_ui"].add(text("PRESS SPACE TO UNPAUSE", (50, 40), 50))
-gamestate["score_text"] = text("Score: 0", (50, 5), 50)
-gamestate["level_text"] = text("Level: 1", (5, 5), 50)
-gamestate["fps_text"] = text("FPS: 0", (95, 5), 50)
+gamestate["menu_ui"].add(ResumeButton("RESUME", (50, 40), 100))
+gamestate["menu_ui"].add(RestartButton("START", (50, 20), 100))
+gamestate["score_text"] = Text("Score: 0", (50, 5), 50)
+gamestate["level_text"] = Text("Level: 1", (5, 5), 50)
+gamestate["fps_text"] = Text("FPS: 0", (95, 5), 50)
 gamestate["ui"].add(gamestate["score_text"])
 gamestate["ui"].add(gamestate["level_text"])
 gamestate["ui"].add(gamestate["fps_text"])
