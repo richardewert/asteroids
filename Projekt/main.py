@@ -535,7 +535,7 @@ def reset():
 
 pygame.mixer.set_num_channels(10)
 gamestate["menu_ui"].add(ResumeButton("RESUME", (50, 40), 100))
-gamestate["menu_ui"].add(RestartButton("START", (50, 20), 100))
+gamestate["menu_ui"].add(RestartButton("START NEW GAME", (50, 20), 100))
 gamestate["score_text"] = Text("Score: 0", (50, 5), 50)
 gamestate["level_text"] = Text("Level: 1", (5, 5), 50)
 gamestate["fps_text"] = Text("FPS: 0", (95, 5), 50)
