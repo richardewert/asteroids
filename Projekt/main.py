@@ -2,7 +2,6 @@ import random
 import math
 from time import time
 from turtle import position, update
-from numpy import size
 import pygame
 pygame.init()
 
@@ -16,7 +15,8 @@ assets =    {   "window_icon": pygame.image.load("Projekt/Assets/window_icon.png
                 "rocket_image": pygame.image.load("Projekt/Assets/rocket_image.png").convert(),
                 "particle_image": pygame.image.load("Projekt/Assets/particle_image.png").convert(),
                 "pointer_image": pygame.image.load("Projekt/Assets/pointer_image.png").convert(),
-                "explosion_image": pygame.image.load("Projekt/Assets/explosion_image.png").convert()}
+                "explosion_image": pygame.image.load("Projekt/Assets/explosion_image.png").convert(),
+                "sound_track": "Projekt/Assets/sound_track.wav"}
 
 gamestate = {   "player": None,
                 "camera": None,
@@ -544,6 +544,8 @@ gamestate["ui"].add(gamestate["level_text"])
 gamestate["ui"].add(gamestate["fps_text"])
 gamestate["running"] = True
 
+pygame.mixer.music.load(assets["sound_track"])
+pygame.mixer.music.play(-1,0.0)
 while gamestate["running"]:
     if not gamestate["menu"]:
         game_update()

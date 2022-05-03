@@ -1,0 +1,15 @@
+Features:
+- Steuerbare Spielfigur
+- Kamera folgt dem Spieler smooth
+- Spieler kann in beliebige Richtung schießen
+- Spieler kann Granaten werfen
+- Es gibt ein Menü in dem man neustarten und weiterspielen kann
+- Asteroiden können dem Spieler Schaden zufügen
+- Asteroiden können zerschossen werden
+- Asteroiden Teilen sich
+- Lenkraketen könnnen dem Spieler folgen
+- Lenkraketen können dem Spieler Schaden zufügen
+- Lenkraketen können kollidieren
+- Schwierigkeit skaliert
+- Es gibt Hintergrund Musik und Soundeffekte
+
